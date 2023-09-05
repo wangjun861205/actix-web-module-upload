@@ -1,9 +1,14 @@
 use crate::core::store::Store;
 use actix_multipart::Field;
+use anyhow;
 use bytes::Bytes;
-use futures::{Sink, SinkExt, Stream, StreamExt, TryStreamExt};
+use futures::{FutureExt, Sink, SinkExt, Stream, StreamExt, TryStreamExt};
 use std::error::Error;
-use tokio::{fs::File, io::AsyncWriteExt};
+use tokio::{
+    fs::File,
+    io::{AsyncBufReadExt, AsyncReadExt, AsyncWriteExt},
+};
+use tokio_util::codec::{BytesCodec, FramedRead};
 use uuid::Uuid;
 
 pub struct LocalFSStore {
@@ -33,6 +38,11 @@ impl Store for LocalFSStore {
     }
 
     async fn get(&mut self, token: &Self::Token) -> Result<Self::Stream, Box<dyn std::error::Error>> {
-        unimplemented!()
+        let file = File::open(format!("{}/{}", self.path, token)).await?;
+        let stream = FramedRead::new(file, BytesCodec::new()).map(|v| match v {
+            Ok(b) => Ok(b.freeze()),
+            Err(e) => Err(Box::new(e) as Box<dyn Error>),
+        });
+        Ok(Box::new(stream))
     }
 }
