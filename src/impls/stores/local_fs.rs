@@ -19,13 +19,11 @@ impl LocalFSStore {
     }
 }
 
-impl<ST> Store<ST> for LocalFSStore
-where
-    ST: Stream<Item = Result<Bytes, Box<dyn Error>>> + Unpin,
-{
+impl Store for LocalFSStore {
     type Token = String;
+    type Stream = Box<dyn Stream<Item = Result<Bytes, Box<dyn Error>>> + Unpin>;
 
-    async fn put(&mut self, mut stream: ST) -> Result<Self::Token, Box<dyn std::error::Error>> {
+    async fn put(&mut self, mut stream: Self::Stream) -> Result<Self::Token, Box<dyn std::error::Error>> {
         let token = Uuid::new_v4().to_string();
         let mut file = File::create(format!("{}/{}", self.path, token)).await?;
         while let Some(bs) = stream.try_next().await? {
@@ -34,7 +32,7 @@ where
         Ok(token)
     }
 
-    async fn get(&mut self, token: &Self::Token) -> Result<ST, Box<dyn std::error::Error>> {
+    async fn get(&mut self, token: &Self::Token) -> Result<Self::Stream, Box<dyn std::error::Error>> {
         unimplemented!()
     }
 }

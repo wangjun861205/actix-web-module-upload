@@ -22,7 +22,7 @@ pub async fn upload<I, R, S, TK>(
 ) -> Result<Json<UploadResponse<I>>, Box<dyn Error>>
 where
     R: Repository<Token = TK, ID = I>,
-    S: Store<Box<dyn Stream<Item = Result<Bytes, Box<dyn Error>>> + Unpin>, Token = TK>,
+    S: Store<Stream = Box<dyn Stream<Item = Result<Bytes, Box<dyn Error>>> + Unpin>, Token = TK>,
     I: Serialize + Clone,
 {
     let mut ids = vec![];

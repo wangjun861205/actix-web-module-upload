@@ -8,7 +8,7 @@ use std::marker::PhantomData;
 pub struct Service<R, S, ST>
 where
     R: Repository,
-    S: Store<ST>,
+    S: Store,
     ST: Stream<Item = Result<Bytes, Box<dyn Error>>> + Unpin,
 {
     repository: R,
@@ -19,7 +19,7 @@ where
 impl<R, S, T, ST> Service<R, S, ST>
 where
     R: Repository<Token = T>,
-    S: Store<ST, Token = T>,
+    S: Store<Token = T, Stream = ST>,
     ST: Stream<Item = Result<Bytes, Box<dyn Error>>> + Unpin,
 {
     pub fn new(repository: R, store: S) -> Self {

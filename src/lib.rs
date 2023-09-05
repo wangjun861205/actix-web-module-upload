@@ -23,7 +23,7 @@ where
     ID: FromRequest + Serialize + Clone + 'static,
     TK: 'static,
     R: Repository<Token = TK, ID = ID> + 'static,
-    S: Store<Box<dyn Stream<Item = Result<Bytes, Box<dyn Error>>> + Unpin>, Token = TK> + 'static,
+    S: Store<Stream = Box<dyn Stream<Item = Result<Bytes, Box<dyn Error>>> + Unpin>, Token = TK> + 'static,
     T: ServiceFactory<ServiceRequest, Config = (), Error = actix_web::Error, InitError = ()>,
 {
     let service = Service::new(repository, store);
