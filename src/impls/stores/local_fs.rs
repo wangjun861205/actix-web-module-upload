@@ -1,5 +1,6 @@
 use crate::core::store::Store;
 use actix_multipart::Field;
+use actix_web::FromRequest;
 use anyhow;
 use bytes::Bytes;
 use futures::{FutureExt, Sink, SinkExt, Stream, StreamExt, TryStreamExt};
@@ -44,5 +45,14 @@ impl Store for LocalFSStore {
             Err(e) => Err(Box::new(e) as Box<dyn Error>),
         });
         Ok(Box::new(stream))
+    }
+}
+
+impl FromRequest for LocalFSStore {
+    type Error = Box<dyn Error>;
+    type Future = futures::future::Ready<Result<Self, Self::Error>>;
+
+    fn from_request(req: &actix_web::HttpRequest, payload: &mut actix_web::dev::Payload) -> Self::Future {
+        unimplemented!()
     }
 }

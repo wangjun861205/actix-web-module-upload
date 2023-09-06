@@ -1,8 +1,9 @@
+use actix_web::FromRequest;
 use bytes::Bytes;
 use futures::Stream;
 use std::error::Error;
 
-pub trait Store {
+pub trait Store: FromRequest {
     type Token;
     type Stream: Stream<Item = Result<Bytes, Box<dyn Error>>>;
 

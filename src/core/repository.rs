@@ -1,3 +1,5 @@
+use actix_web::FromRequest;
+
 use crate::core::entities::{UploadedFile, UploadedFileCreate, UploadedFileQuery};
 use std::error::Error;
 
@@ -6,7 +8,7 @@ pub struct Pagination {
     pub size: i64,
 }
 
-pub trait Repository {
+pub trait Repository: FromRequest {
     type ID;
     type Token;
 
