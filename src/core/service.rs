@@ -1,10 +1,8 @@
 use super::{repository::Repository, store::Store};
 use crate::core::entities::{UploadedFile, UploadedFileCreate};
 use actix_web::FromRequest;
-use bytes::Bytes;
-use futures::Stream;
 use std::error::Error;
-use std::marker::PhantomData;
+use std::pin::Pin;
 
 pub struct Service<R, S>
 where
@@ -48,15 +46,21 @@ where
 
 impl<R, S> FromRequest for Service<R, S>
 where
-    R: Repository,
-    S: Store,
+    R: Repository + FromRequest,
+    R::Future: 'static,
+    S: Store + FromRequest,
+    S::Future: 'static,
 {
     type Error = Box<dyn Error>;
-    type Future = futures::future::Ready<Result<Self, Self::Error>>;
-    fn extract(req: &actix_web::HttpRequest) -> Self::Future {
-        unimplemented!()
-    }
+    type Future = Pin<Box<dyn futures::Future<Output = Result<Self, Self::Error>>>>;
     fn from_request(req: &actix_web::HttpRequest, payload: &mut actix_web::dev::Payload) -> Self::Future {
-        unimplemented!()
+        let repository = R::from_request(req, payload);
+        let store = S::from_request(req, payload);
+        Box::pin(async move {
+            Ok(Self {
+                repository: repository.await.map_err(|e| e.into())?,
+                store: store.await.map_err(|e| e.into())?,
+            })
+        })
     }
 }

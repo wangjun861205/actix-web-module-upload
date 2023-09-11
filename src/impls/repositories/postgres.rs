@@ -1,4 +1,3 @@
-use actix_web::web::Data;
 use actix_web::{dev::Payload, FromRequest, HttpRequest};
 use chrono::{DateTime, Local};
 use sqlx::postgres::PgExecutor;
@@ -10,7 +9,7 @@ use std::str::FromStr;
 
 use crate::core::{
     entities::{UploadedFile, UploadedFileCreate, UploadedFileQuery},
-    repository::{Pagination, Repository},
+    repository::Repository,
 };
 
 pub struct PostgresRepository<E>
