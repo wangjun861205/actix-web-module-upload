@@ -1,6 +1,6 @@
 #![feature(async_fn_in_trait)]
 
-use core::{repository::Repository, store::Store};
+use core::{repository::Repository, service::Service, store::Store};
 
 use crate::{
     handlers::TryFromStr,
@@ -27,15 +27,15 @@ impl TryFromStr for i32 {
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
     dotenv::dotenv().expect("Failed to read .env file");
-    let pool = PgPool::connect(&dotenv::var("DATABASE_URL").expect("DATABASE_URL must be set"))
-        .await
-        .expect("Failed to connect to database");
+    let db_url = dotenv::var("DATABASE_URL").expect("DATABASE_URL must be set");
+    let pool = PgPool::connect(&db_url).await.expect("Failed to connect to database");
+    let store_path = dotenv::var("STORE_PATH").expect("STORE_PATH must be set");
     HttpServer::new(move || {
         App::new()
             .app_data(Data::new(pool.clone()))
-            .app_data(Data::new(StorePath("/tmp/uploaded_files".to_owned())))
-            .route("/", post().to(handlers::upload::<i32, PostgresRepository<PgPool>, LocalFSStore, String>))
-            .route("/{id}", get().to(handlers::download::<i32, PostgresRepository<PgPool>, LocalFSStore, String>))
+            .app_data(Data::new(StorePath(store_path.clone())))
+            .route("/", post().to(handlers::upload::<PostgresRepository<&PgPool>, LocalFSStore, i32, String>))
+            .route("/{id}", get().to(handlers::download::<PostgresRepository<&PgPool>, LocalFSStore, i32, String>))
     })
     .bind(dotenv::var("ADDRESS").expect("ADDRESS must be set"))?
     .run()

@@ -16,6 +16,7 @@ pub struct UploadedFileCreate<I, T> {
     pub uploader_id: I,
 }
 
+#[derive(Debug, Clone)]
 pub struct UploadedFileQuery<I> {
     pub id_eq: Option<I>,
     pub uploader_id_eq: Option<I>,

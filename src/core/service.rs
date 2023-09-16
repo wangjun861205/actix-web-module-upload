@@ -3,27 +3,34 @@ use crate::core::entities::{UploadedFile, UploadedFileCreate};
 use actix_web::FromRequest;
 use mime_guess::{self, mime};
 use std::error::Error;
+use std::marker::PhantomData;
 use std::pin::Pin;
 
-pub struct Service<R, S>
+#[derive(Debug, Clone)]
+pub struct Service<R, S, ID, TK>
 where
-    R: Repository,
+    R: Repository<ID, TK>,
     S: Store,
 {
     repository: R,
     store: S,
+    _phantom: PhantomData<(ID, TK)>,
 }
 
-impl<R, S, T> Service<R, S>
+impl<R, S, ID, TK> Service<R, S, ID, TK>
 where
-    R: Repository<Token = T>,
-    S: Store<Token = T>,
+    R: Repository<ID, TK>,
+    S: Store<Token = TK>,
 {
     pub fn new(repository: R, store: S) -> Self {
-        Self { repository, store }
+        Self {
+            repository,
+            store,
+            _phantom: PhantomData,
+        }
     }
 
-    pub async fn upload(&mut self, stream: S::Stream, filename: &str, uploader_id: R::ID, size_limit: Option<i64>) -> Result<R::ID, Box<dyn Error>> {
+    pub async fn upload(&mut self, stream: S::Stream, filename: &str, uploader_id: ID, size_limit: Option<i64>) -> Result<ID, Box<dyn Error>> {
         let mime_type = match mime_guess::from_path(filename).first() {
             Some(mime_type) => mime_type,
             None => mime::APPLICATION_OCTET_STREAM,
@@ -39,19 +46,19 @@ where
             .await
     }
 
-    pub async fn get_uploaded_file(&mut self, id: R::ID) -> Result<UploadedFile<R::ID, T>, Box<dyn Error>> {
+    pub async fn get_uploaded_file(&mut self, id: ID) -> Result<UploadedFile<ID, TK>, Box<dyn Error>> {
         self.repository.get_uploaded_file(id).await
     }
 
-    pub async fn download(&mut self, id: R::ID) -> Result<S::Stream, Box<dyn Error>> {
+    pub async fn download(&mut self, id: ID) -> Result<S::Stream, Box<dyn Error>> {
         let file = self.repository.get_uploaded_file(id).await?;
         self.store.get(&file.fetch_token).await
     }
 }
 
-impl<R, S> FromRequest for Service<R, S>
+impl<R, S, ID, TK> FromRequest for Service<R, S, ID, TK>
 where
-    R: Repository + FromRequest,
+    R: Repository<ID, TK> + FromRequest,
     R::Future: 'static,
     S: Store + FromRequest,
     S::Future: 'static,
@@ -65,6 +72,7 @@ where
             Ok(Self {
                 repository: repository.await.map_err(|e| e.into())?,
                 store: store.await.map_err(|e| e.into())?,
+                _phantom: PhantomData,
             })
         })
     }

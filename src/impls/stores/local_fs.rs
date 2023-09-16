@@ -55,17 +55,3 @@ impl Store for LocalFSStore {
         Ok(Box::new(stream))
     }
 }
-
-use crate::impls::stores::common::StorePath;
-
-impl FromRequest for LocalFSStore {
-    type Error = Box<dyn Error>;
-    type Future = futures::future::Ready<Result<Self, Self::Error>>;
-
-    fn from_request(req: &actix_web::HttpRequest, _payload: &mut actix_web::dev::Payload) -> Self::Future {
-        if let Some(path) = req.app_data::<Data<StorePath>>() {
-            return futures::future::ready(Ok(Self::new(path.0.to_string())));
-        }
-        futures::future::ready(Err(Box::new(StoreError("Store path not found"))))
-    }
-}

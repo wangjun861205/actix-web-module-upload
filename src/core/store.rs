@@ -3,7 +3,7 @@ use bytes::Bytes;
 use futures::Stream;
 use std::error::Error;
 
-pub trait Store: FromRequest {
+pub trait Store {
     type Token;
     type Stream: Stream<Item = Result<Bytes, Box<dyn Error>>>;
 
