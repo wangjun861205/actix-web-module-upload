@@ -1,9 +1,8 @@
 use crate::core::store::Store;
 use crate::impls::stores::error::Error as StoreError;
-use actix_web::{web::Data, FromRequest};
 use bytes::Bytes;
-use futures::{future::ready, Stream, StreamExt, TryStreamExt};
-use std::error::Error;
+use futures::{Stream, StreamExt, TryStreamExt};
+use std::{error::Error, fmt::Display};
 use tokio::{fs::File, io::AsyncWriteExt};
 use tokio_util::codec::{BytesCodec, FramedRead};
 use uuid::Uuid;
@@ -21,12 +20,13 @@ impl LocalFSStore {
     }
 }
 
-impl Store for LocalFSStore {
-    type Token = String;
+impl<TK> Store<TK> for LocalFSStore
+where
+    TK: Display,
+{
     type Stream = Box<dyn Stream<Item = Result<Bytes, Box<dyn Error>>> + Unpin>;
 
-    async fn put(&mut self, stream: Self::Stream, size_limit: Option<i64>) -> Result<Self::Token, Box<dyn std::error::Error>> {
-        let token = Uuid::new_v4().to_string();
+    async fn put(&mut self, stream: Self::Stream, token: TK, size_limit: Option<i64>) -> Result<TK, Box<dyn std::error::Error>> {
         let mut file = File::create(format!("{}/{}", self.path, token)).await?;
         let mut curr_size = 0;
         let mut stream = stream.map(|bs| {
@@ -46,7 +46,7 @@ impl Store for LocalFSStore {
         Ok(token)
     }
 
-    async fn get(&mut self, token: &Self::Token) -> Result<Self::Stream, Box<dyn std::error::Error>> {
+    async fn get(&mut self, token: &TK) -> Result<Self::Stream, Box<dyn std::error::Error>> {
         let file = File::open(format!("{}/{}", self.path, token)).await?;
         let stream = FramedRead::new(file, BytesCodec::new()).map(|v| match v {
             Ok(b) => Ok(b.freeze()),

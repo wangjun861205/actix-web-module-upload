@@ -24,6 +24,12 @@ impl TryFromStr for i32 {
     }
 }
 
+impl TryFromStr for String {
+    fn try_from_str(s: &str) -> Result<Self, Box<dyn Error>> {
+        Ok(s.to_owned())
+    }
+}
+
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
     dotenv::dotenv().expect("Failed to read .env file");

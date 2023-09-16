@@ -11,9 +11,9 @@ use actix_web::{
 use bytes::Bytes;
 use futures::{Stream, StreamExt, TryStreamExt};
 use serde::Serialize;
-use sqlx::{pool::PoolConnection, PgPool};
-use sqlx::{Executor, PgConnection, Postgres};
-use std::error::Error;
+use sqlx::PgPool;
+use sqlx::Postgres;
+use std::{error::Error, fmt::Display};
 
 pub trait TryFromStr
 where
@@ -33,12 +33,13 @@ where
 pub async fn upload<R, S, ID, TK>(req: HttpRequest, mut payload: Multipart, pool: Data<PgPool>, store_path: Data<StorePath>) -> Result<Json<UploadResponse<ID>>, Box<dyn Error>>
 where
     R: Repository<ID, TK>,
-    S: Store<Stream = Box<dyn Stream<Item = Result<Bytes, Box<dyn Error>>> + Unpin>, Token = TK>,
+    S: Store<TK, Stream = Box<dyn Stream<Item = Result<Bytes, Box<dyn Error>>> + Unpin>>,
     for<'i> ID: sqlx::Decode<'i, Postgres> + sqlx::Encode<'i, Postgres> + sqlx::Type<Postgres> + Serialize + Clone + TryFromStr + Send + Unpin + 'static,
+    for<'t> TK: sqlx::Decode<'t, Postgres> + sqlx::Encode<'t, Postgres> + sqlx::Type<Postgres> + Serialize + Clone + TryFromStr + Display + Send + Unpin + 'static,
 {
     let repository = PostgresRepository::new(pool.as_ref());
     let store = LocalFSStore::new(store_path.0.clone());
-    let mut service = Service::new(repository, store);
+    let mut service: Service<_, _, ID, TK> = Service::new(repository, store);
     if let Some(uid) = req.headers().get("X-User-ID") {
         if let Ok(uid) = uid.to_str() {
             let uid: ID = ID::try_from_str(uid)?;
@@ -50,7 +51,8 @@ where
                 let filename = field.content_disposition().get_filename().unwrap().to_owned();
                 let trans = Box::new(field.map(|res| res.map_err(|e| e.into())));
                 let size_limit = req.headers().get("X-Size-Limit").map(|s| s.to_str().unwrap_or("-1").parse().unwrap_or(-1));
-                ids.push(service.upload(trans, &filename, uid.clone(), size_limit).await?);
+                let token = TK::try_from_str(&uuid::Uuid::new_v4().to_string())?;
+                ids.push(service.upload(trans, &filename, uid.clone(), token, size_limit).await?);
             }
             return Ok(Json(UploadResponse { ids }));
         }
@@ -61,12 +63,13 @@ where
 pub async fn download<R, S, ID, TK>(pool: Data<PgPool>, store_path: Data<StorePath>, id: Path<(ID,)>) -> Result<HttpResponse, Box<dyn Error>>
 where
     R: Repository<ID, TK>,
-    S: Store<Stream = Box<dyn Stream<Item = Result<Bytes, Box<dyn Error>>> + Unpin>, Token = TK>,
+    S: Store<TK, Stream = Box<dyn Stream<Item = Result<Bytes, Box<dyn Error>>> + Unpin>>,
     for<'i> ID: sqlx::Decode<'i, Postgres> + sqlx::Encode<'i, Postgres> + sqlx::Type<Postgres> + Serialize + Clone + TryFromStr + Send + Unpin + 'static,
+    for<'t> TK: sqlx::Decode<'t, Postgres> + sqlx::Encode<'t, Postgres> + sqlx::Type<Postgres> + Serialize + Clone + TryFromStr + Display + Send + Unpin + 'static,
 {
     let repository = PostgresRepository::new(pool.as_ref());
     let store = LocalFSStore::new(store_path.0.clone());
-    let mut service = Service::new(repository, store);
+    let mut service = Service::<_, _, ID, TK>::new(repository, store);
     let info = service.get_uploaded_file(id.clone().0).await?;
     Ok(HttpResponse::build(StatusCode::OK).content_type(info.mime_type).streaming(service.download(id.clone().0).await?))
 }
