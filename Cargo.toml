@@ -8,8 +8,8 @@ edition = "2021"
 [dependencies]
 tokio = "1.32.0"
 actix-multipart = "0.6.1"
-sqlx = { version = "0.7.1", features = ["postgres"] }
-actix-web = "4.4.0"
+sqlx = { version = "0.7.1", features = ["postgres", "runtime-tokio", "chrono"] }
+actix-web = { version = "4.4.0" }
 anyhow = "1.0.75"
 bytes = "1.4.0"
 chrono = "0.4.28"
@@ -18,3 +18,4 @@ serde = { version = "1.0.188", features = ["derive"] }
 tokio-util = "0.7.8"
 uuid = { version = "1.4.1", features = ["v4"] }
 dotenv = "0.15.0"
+mime_guess = "2.0.4"

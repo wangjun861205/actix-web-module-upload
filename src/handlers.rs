@@ -36,15 +36,13 @@ where
             let uid: I = I::try_from_str(uid)?;
             let mut ids = vec![];
             while let Ok(Some(field)) = payload.try_next().await {
-                if !field.content_disposition().is_attachment() {
-                    continue;
-                }
                 if field.content_disposition().get_filename().is_none() {
                     continue;
                 }
                 let filename = field.content_disposition().get_filename().unwrap().to_owned();
                 let trans = Box::new(field.map(|res| res.map_err(|e| e.into())));
-                ids.push(service.upload(trans, &filename, uid.clone()).await?);
+                let size_limit = req.headers().get("X-Size-Limit").map(|s| s.to_str().unwrap_or("-1").parse().unwrap_or(-1));
+                ids.push(service.upload(trans, &filename, uid.clone(), size_limit).await?);
             }
             return Ok(Json(UploadResponse { ids }));
         }

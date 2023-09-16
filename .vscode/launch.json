@@ -1,0 +1,45 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Debug executable 'actix-web-module-upload'",
+            "cargo": {
+                "args": [
+                    "build",
+                    "--bin=actix-web-module-upload",
+                    "--package=actix-web-module-upload"
+                ],
+                "filter": {
+                    "name": "actix-web-module-upload",
+                    "kind": "bin"
+                }
+            },
+            "args": [],
+            "cwd": "${workspaceFolder}"
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Debug unit tests in executable 'actix-web-module-upload'",
+            "cargo": {
+                "args": [
+                    "test",
+                    "--no-run",
+                    "--bin=actix-web-module-upload",
+                    "--package=actix-web-module-upload"
+                ],
+                "filter": {
+                    "name": "actix-web-module-upload",
+                    "kind": "bin"
+                }
+            },
+            "args": [],
+            "cwd": "${workspaceFolder}"
+        }
+    ]
+}
