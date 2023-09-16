@@ -30,16 +30,13 @@ where
     ids: Vec<I>,
 }
 
-pub async fn upload<R, S, ID, TK>(req: HttpRequest, mut payload: Multipart, pool: Data<PgPool>, store_path: Data<StorePath>) -> Result<Json<UploadResponse<ID>>, Box<dyn Error>>
+pub async fn upload<R, S, ID, TK>(req: HttpRequest, mut payload: Multipart, service: Data<Service<R, S, ID, TK>>) -> Result<Json<UploadResponse<ID>>, Box<dyn Error>>
 where
-    R: Repository<ID, TK>,
-    S: Store<TK, Stream = Box<dyn Stream<Item = Result<Bytes, Box<dyn Error>>> + Unpin>>,
-    for<'i> ID: sqlx::Decode<'i, Postgres> + sqlx::Encode<'i, Postgres> + sqlx::Type<Postgres> + Serialize + Clone + TryFromStr + Send + Unpin + 'static,
-    for<'t> TK: sqlx::Decode<'t, Postgres> + sqlx::Encode<'t, Postgres> + sqlx::Type<Postgres> + Serialize + Clone + TryFromStr + Display + Send + Unpin + 'static,
+    R: Repository<ID, TK> + Clone,
+    S: Store<TK, Stream = Box<dyn Stream<Item = Result<Bytes, Box<dyn Error>>> + Unpin>> + Clone,
+    ID: Serialize + Clone + TryFromStr + Send + Unpin + 'static,
+    TK: Serialize + Clone + TryFromStr + Display + Send + Unpin + 'static,
 {
-    let repository = PostgresRepository::new(pool.as_ref());
-    let store = LocalFSStore::new(store_path.0.clone());
-    let mut service: Service<_, _, ID, TK> = Service::new(repository, store);
     if let Some(uid) = req.headers().get("X-User-ID") {
         if let Ok(uid) = uid.to_str() {
             let uid: ID = ID::try_from_str(uid)?;
@@ -60,16 +57,13 @@ where
     Err("Invalid user".into())
 }
 
-pub async fn download<R, S, ID, TK>(pool: Data<PgPool>, store_path: Data<StorePath>, id: Path<(ID,)>) -> Result<HttpResponse, Box<dyn Error>>
+pub async fn download<R, S, ID, TK>(id: Path<(ID,)>, service: Data<Service<R, S, ID, TK>>) -> Result<HttpResponse, Box<dyn Error>>
 where
-    R: Repository<ID, TK>,
-    S: Store<TK, Stream = Box<dyn Stream<Item = Result<Bytes, Box<dyn Error>>> + Unpin>>,
-    for<'i> ID: sqlx::Decode<'i, Postgres> + sqlx::Encode<'i, Postgres> + sqlx::Type<Postgres> + Serialize + Clone + TryFromStr + Send + Unpin + 'static,
-    for<'t> TK: sqlx::Decode<'t, Postgres> + sqlx::Encode<'t, Postgres> + sqlx::Type<Postgres> + Serialize + Clone + TryFromStr + Display + Send + Unpin + 'static,
+    R: Repository<ID, TK> + Clone,
+    S: Store<TK, Stream = Box<dyn Stream<Item = Result<Bytes, Box<dyn Error>>> + Unpin>> + Clone,
+    ID: Serialize + Clone + TryFromStr + Send + Unpin + 'static,
+    TK: Serialize + Clone + TryFromStr + Display + Send + Unpin + 'static,
 {
-    let repository = PostgresRepository::new(pool.as_ref());
-    let store = LocalFSStore::new(store_path.0.clone());
-    let mut service = Service::<_, _, ID, TK>::new(repository, store);
     let info = service.get_uploaded_file(id.clone().0).await?;
     Ok(HttpResponse::build(StatusCode::OK).content_type(info.mime_type).streaming(service.download(id.clone().0).await?))
 }

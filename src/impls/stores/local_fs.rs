@@ -5,8 +5,8 @@ use futures::{Stream, StreamExt, TryStreamExt};
 use std::{error::Error, fmt::Display};
 use tokio::{fs::File, io::AsyncWriteExt};
 use tokio_util::codec::{BytesCodec, FramedRead};
-use uuid::Uuid;
 
+#[derive(Debug, Clone)]
 pub struct LocalFSStore {
     path: String,
 }
@@ -26,7 +26,7 @@ where
 {
     type Stream = Box<dyn Stream<Item = Result<Bytes, Box<dyn Error>>> + Unpin>;
 
-    async fn put(&mut self, stream: Self::Stream, token: TK, size_limit: Option<i64>) -> Result<TK, Box<dyn std::error::Error>> {
+    async fn put(&self, stream: Self::Stream, token: TK, size_limit: Option<i64>) -> Result<TK, Box<dyn std::error::Error>> {
         let mut file = File::create(format!("{}/{}", self.path, token)).await?;
         let mut curr_size = 0;
         let mut stream = stream.map(|bs| {
@@ -46,7 +46,7 @@ where
         Ok(token)
     }
 
-    async fn get(&mut self, token: &TK) -> Result<Self::Stream, Box<dyn std::error::Error>> {
+    async fn get(&self, token: &TK) -> Result<Self::Stream, Box<dyn std::error::Error>> {
         let file = File::open(format!("{}/{}", self.path, token)).await?;
         let stream = FramedRead::new(file, BytesCodec::new()).map(|v| match v {
             Ok(b) => Ok(b.freeze()),
