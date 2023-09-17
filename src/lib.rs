@@ -7,6 +7,7 @@ use crate::{
     impls::{repositories::postgres::PostgresRepository, stores::local_fs::LocalFSStore},
 };
 use actix_web::{
+    middleware::Logger,
     web::{get, post, Data},
     App, HttpServer,
 };
@@ -39,29 +40,13 @@ where
     for<'de> ID: Serialize + Deserialize<'de> + TryFromStr + Clone + Send + Unpin,
     TK: Serialize + TryFromStr + Display + Clone + Send + Unpin,
 {
+    env_logger::init_from_env(env_logger::Env::new().default_filter_or(dotenv::var("LOG_LEVEL").unwrap_or_else(|_| "info".to_owned())));
     HttpServer::new(move || {
         App::new()
+            .wrap(Logger::new("%t %a %r %{X-User-ID}i %s %T"))
             .app_data(Data::new(service.clone()))
             .route("/", post().to(handlers::upload::<RP, ST, ID, TK>))
             .route("/{id}", get().to(handlers::download::<RP, ST, ID, TK>))
-    })
-    .bind(dotenv::var("ADDRESS").expect("ADDRESS must be set"))?
-    .run()
-    .await
-}
-
-#[actix_web::main]
-async fn main() -> std::io::Result<()> {
-    dotenv::dotenv().expect("Failed to read .env file");
-    let db_url = dotenv::var("DATABASE_URL").expect("DATABASE_URL must be set");
-    let pool = PgPool::connect(&db_url).await.expect("Failed to connect to database");
-    let store_path = dotenv::var("STORE_PATH").expect("STORE_PATH must be set");
-    let service: Service<_, _, i32, String> = Service::new(PostgresRepository::new(pool.clone()), LocalFSStore::new(store_path));
-    HttpServer::new(move || {
-        App::new()
-            .app_data(Data::new(service.clone()))
-            .route("/", post().to(handlers::upload::<PostgresRepository, LocalFSStore, i32, String>))
-            .route("/{id}", get().to(handlers::download::<PostgresRepository, LocalFSStore, i32, String>))
     })
     .bind(dotenv::var("ADDRESS").expect("ADDRESS must be set"))?
     .run()
