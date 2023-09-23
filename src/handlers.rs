@@ -1,7 +1,4 @@
 use crate::core::{repository::Repository, service::Service, store::Store};
-use crate::impls::repositories::postgres::PostgresRepository;
-use crate::impls::stores::common::StorePath;
-use crate::impls::stores::local_fs::LocalFSStore;
 use actix_multipart::Multipart;
 use actix_web::{
     http::StatusCode,
@@ -11,8 +8,6 @@ use actix_web::{
 use bytes::Bytes;
 use futures::{Stream, StreamExt, TryStreamExt};
 use serde::Serialize;
-use sqlx::PgPool;
-use sqlx::Postgres;
 use std::{error::Error, fmt::Display};
 
 pub trait TryFromStr

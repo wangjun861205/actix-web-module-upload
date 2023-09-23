@@ -2,19 +2,16 @@
 
 use core::{repository::Repository, service::Service, store::Store};
 
-use crate::{
-    handlers::TryFromStr,
-    impls::{repositories::postgres::PostgresRepository, stores::local_fs::LocalFSStore},
-};
+use crate::handlers::TryFromStr;
 use actix_web::{
     middleware::Logger,
     web::{get, post, Data},
     App, HttpServer,
 };
 use bytes::Bytes;
+use from_env::{FromEnv, FromEnvDerive};
 use futures::Stream;
 use serde::{Deserialize, Serialize};
-use sqlx::PgPool;
 use std::{error::Error, fmt::Display};
 
 pub mod core;
@@ -33,6 +30,12 @@ impl TryFromStr for String {
     }
 }
 
+#[derive(FromEnvDerive)]
+struct Config {
+    log_level: String,
+    address: String,
+}
+
 pub async fn start<RP, ST, ID, TK>(service: Service<RP, ST, ID, TK>) -> std::io::Result<()>
 where
     RP: Repository<ID, TK> + Clone + Send + Unpin,
@@ -40,7 +43,9 @@ where
     for<'de> ID: Serialize + Deserialize<'de> + TryFromStr + Clone + Send + Unpin,
     TK: Serialize + TryFromStr + Display + Clone + Send + Unpin,
 {
-    env_logger::init_from_env(env_logger::Env::new().default_filter_or(dotenv::var("LOG_LEVEL").unwrap_or_else(|_| "info".to_owned())));
+    dotenv::dotenv().ok();
+    let config = Config::from_env();
+    env_logger::init_from_env(env_logger::Env::new().default_filter_or(config.log_level));
     HttpServer::new(move || {
         App::new()
             .wrap(Logger::new("%t %a %r %{X-User-ID}i %s %T"))
@@ -48,7 +53,7 @@ where
             .route("/", post().to(handlers::upload::<RP, ST, ID, TK>))
             .route("/{id}", get().to(handlers::download::<RP, ST, ID, TK>))
     })
-    .bind(dotenv::var("ADDRESS").expect("ADDRESS must be set"))?
+    .bind(config.address)?
     .run()
     .await
 }
