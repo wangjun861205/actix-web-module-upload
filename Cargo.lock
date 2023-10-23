@@ -220,28 +220,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "actix-web-module-upload"
-version = "0.1.0"
-dependencies = [
- "actix-multipart",
- "actix-web",
- "anyhow",
- "bytes",
- "chrono",
- "dotenv",
- "env_logger",
- "from-env",
- "from-env-derive",
- "futures",
- "mime_guess",
- "serde",
- "sqlx",
- "tokio",
- "tokio-util",
- "uuid",
-]
-
-[[package]]
 name = "addr2line"
 version = "0.21.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2231,6 +2209,28 @@ name = "unicode_categories"
 version = "0.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "39ec24b3121d976906ece63c9daad25b85969647682eee313cb5779fdd69e14e"
+
+[[package]]
+name = "upload-service"
+version = "0.1.0"
+dependencies = [
+ "actix-multipart",
+ "actix-web",
+ "anyhow",
+ "bytes",
+ "chrono",
+ "dotenv",
+ "env_logger",
+ "from-env",
+ "from-env-derive",
+ "futures",
+ "mime_guess",
+ "serde",
+ "sqlx",
+ "tokio",
+ "tokio-util",
+ "uuid",
+]
 
 [[package]]
 name = "url"
