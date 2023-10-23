@@ -1,5 +1,3 @@
-use std::path::Path;
-
 use chrono::{DateTime, Local};
 
 pub struct UploadedFile<I> {
