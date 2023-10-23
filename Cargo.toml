@@ -20,5 +20,3 @@ uuid = { version = "1.4.1", features = ["v4"] }
 dotenv = "0.15.0"
 mime_guess = "2.0.4"
 env_logger = "0.10.0"
-from-env = { git = "https://github.com/wangjun861205/from-env-rs.git" }
-from-env-derive = { git = "https://github.com/wangjun861205/from-env-derive-rs.git" }
