@@ -1,10 +1,10 @@
+use anyhow::Error;
 use bytes::Bytes;
 use futures::Stream;
-use std::error::Error;
 
-pub trait Store<TK> {
-    type Stream: Stream<Item = Result<Bytes, Box<dyn Error>>>;
+pub trait Store {
+    type Stream: Stream<Item = Result<Bytes, Error>>;
 
-    async fn put(&self, stream: Self::Stream, token: TK, size_limit: Option<i64>) -> Result<TK, Box<dyn Error>>;
-    async fn get(&self, token: &TK) -> Result<Self::Stream, Box<dyn Error>>;
+    async fn put(&self, stream: Self::Stream, size_limit: Option<i64>) -> Result<String, Error>;
+    async fn get(&self, filepath: &str) -> Result<Self::Stream, Error>;
 }

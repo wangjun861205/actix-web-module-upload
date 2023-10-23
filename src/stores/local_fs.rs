@@ -1,10 +1,10 @@
 use crate::core::store::Store;
-use crate::impls::stores::error::Error as StoreError;
+use anyhow::Error;
 use bytes::Bytes;
 use futures::{Stream, StreamExt, TryStreamExt};
-use std::{error::Error, fmt::Display};
 use tokio::{fs::File, io::AsyncWriteExt};
 use tokio_util::codec::{BytesCodec, FramedRead};
+use uuid::Uuid;
 
 #[derive(Debug, Clone)]
 pub struct LocalFSStore {
@@ -20,21 +20,20 @@ impl LocalFSStore {
     }
 }
 
-impl<TK> Store<TK> for LocalFSStore
-where
-    TK: Display,
-{
-    type Stream = Box<dyn Stream<Item = Result<Bytes, Box<dyn Error>>> + Unpin>;
+impl Store for LocalFSStore {
+    type Stream = Box<dyn Stream<Item = Result<Bytes, Error>> + Unpin>;
 
-    async fn put(&self, stream: Self::Stream, token: TK, size_limit: Option<i64>) -> Result<TK, Box<dyn std::error::Error>> {
-        let mut file = File::create(format!("{}/{}", self.path, token)).await?;
+    async fn put(&self, stream: Self::Stream, size_limit: Option<i64>) -> Result<String, Error> {
+        let token = Uuid::new_v4().to_string();
+        let filepath = format!("{}/{}", self.path, token);
+        let mut file = File::create(&filepath).await?;
         let mut curr_size = 0;
         let mut stream = stream.map(|bs| {
             if let Ok(bs) = &bs {
                 curr_size += bs.len() as i64;
                 if let Some(limit) = size_limit {
                     if curr_size > limit {
-                        return Err(Box::new(StoreError("Size limit exceeded".to_owned())) as Box<dyn Error>);
+                        return Err(Error::msg("Size limit exceeded"));
                     }
                 }
             }
@@ -43,14 +42,14 @@ where
         while let Some(bs) = stream.try_next().await? {
             file.write_all(&bs).await?;
         }
-        Ok(token)
+        Ok(filepath)
     }
 
-    async fn get(&self, token: &TK) -> Result<Self::Stream, Box<dyn std::error::Error>> {
-        let file = File::open(format!("{}/{}", self.path, token)).await?;
+    async fn get(&self, filepath: &str) -> Result<Self::Stream, Error> {
+        let file = File::open(filepath).await?;
         let stream = FramedRead::new(file, BytesCodec::new()).map(|v| match v {
             Ok(b) => Ok(b.freeze()),
-            Err(e) => Err(Box::new(e) as Box<dyn Error>),
+            Err(e) => Err(Error::new(e)),
         });
         Ok(Box::new(stream))
     }

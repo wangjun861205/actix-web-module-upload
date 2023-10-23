@@ -1,18 +1,20 @@
+use std::path::Path;
+
 use chrono::{DateTime, Local};
 
-pub struct UploadedFile<I, T> {
+pub struct UploadedFile<I> {
     pub id: I,
     pub filename: String,
     pub mime_type: String,
-    pub fetch_token: T,
+    pub filepath: String,
     pub uploader_id: I,
     pub uploaded_at: DateTime<Local>,
 }
 
-pub struct UploadedFileCreate<I, T> {
+pub struct UploadedFileCreate<I> {
     pub filename: String,
     pub mime_type: String,
-    pub fetch_token: T,
+    pub filepath: String,
     pub uploader_id: I,
 }
 
