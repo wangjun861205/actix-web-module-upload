@@ -747,24 +747,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "from-env"
-version = "0.1.0"
-source = "git+https://github.com/wangjun861205/from-env-rs.git#7388d580d5e69aa735809d5b7ba2c106b4ba880e"
-dependencies = [
- "from-env-derive",
-]
-
-[[package]]
-name = "from-env-derive"
-version = "0.1.0"
-source = "git+https://github.com/wangjun861205/from-env-derive-rs.git#3ad6805d1da827d9a245b3854821ccd7ce6c1fa8"
-dependencies = [
- "proc-macro2",
- "quote",
- "syn 2.0.31",
-]
-
-[[package]]
 name = "futures"
 version = "0.3.28"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2221,8 +2203,6 @@ dependencies = [
  "chrono",
  "dotenv",
  "env_logger",
- "from-env",
- "from-env-derive",
  "futures",
  "mime_guess",
  "serde",

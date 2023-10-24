@@ -12,18 +12,17 @@ pub struct LocalFSStore {
 }
 
 impl LocalFSStore {
-    pub fn new<S>(path: S) -> Self
+    pub fn new<P>(path: P) -> Self
     where
-        S: Into<String>,
+        P: Into<String>,
     {
         Self { path: path.into() }
     }
 }
 
 impl Store for LocalFSStore {
-    type Stream = Box<dyn Stream<Item = Result<Bytes, Error>> + Unpin>;
-
-    async fn put(&self, stream: Self::Stream, size_limit: Option<i64>) -> Result<String, Error> {
+    async fn put(&self, stream: impl Stream<Item = Result<Bytes, Error>>, size_limit: Option<i64>) -> Result<String, Error> {
+        let stream = Box::pin(stream);
         let token = Uuid::new_v4().to_string();
         let filepath = format!("{}/{}", self.path, token);
         let mut file = File::create(&filepath).await?;
@@ -45,12 +44,12 @@ impl Store for LocalFSStore {
         Ok(filepath)
     }
 
-    async fn get(&self, filepath: &str) -> Result<Self::Stream, Error> {
+    async fn get(&self, filepath: &str) -> Result<Box<dyn Stream<Item = Result<Bytes, Error>>>, Error> {
         let file = File::open(filepath).await?;
         let stream = FramedRead::new(file, BytesCodec::new()).map(|v| match v {
             Ok(b) => Ok(b.freeze()),
             Err(e) => Err(Error::new(e)),
         });
-        Ok(Box::new(stream))
+        Ok(Box::new(stream) as Box<dyn Stream<Item = Result<Bytes, Error>>>)
     }
 }

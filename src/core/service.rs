@@ -1,6 +1,8 @@
 use super::{repository::Repository, store::Store};
 use crate::core::entities::{UploadedFile, UploadedFileCreate};
 use anyhow::Error;
+use bytes::Bytes;
+use futures::Stream;
 use mime_guess::{self, mime};
 use std::marker::PhantomData;
 
@@ -12,7 +14,7 @@ where
 {
     repository: R,
     store: S,
-    _phantom: PhantomData<ID>,
+    _phantom_id: PhantomData<ID>,
 }
 
 impl<R, S, ID> Service<R, S, ID>
@@ -25,11 +27,11 @@ where
         Self {
             repository,
             store,
-            _phantom: PhantomData,
+            _phantom_id: PhantomData,
         }
     }
 
-    pub async fn upload(&self, stream: S::Stream, filename: &str, uploader_id: ID, size_limit: Option<i64>) -> Result<ID, Error> {
+    pub async fn upload(&self, stream: impl Stream<Item = Result<Bytes, Error>>, filename: &str, uploader_id: ID, size_limit: Option<i64>) -> Result<ID, Error> {
         let mime_type = match mime_guess::from_path(filename).first() {
             Some(mime_type) => mime_type,
             None => mime::APPLICATION_OCTET_STREAM,
@@ -49,7 +51,7 @@ where
         self.repository.get_uploaded_file(id).await
     }
 
-    pub async fn download(&self, id: ID) -> Result<S::Stream, Error> {
+    pub async fn download(&self, id: ID) -> Result<Box<dyn Stream<Item = Result<Bytes, Error>>>, Error> {
         let file = self.repository.get_uploaded_file(id).await?;
         self.store.get(&file.filepath).await
     }

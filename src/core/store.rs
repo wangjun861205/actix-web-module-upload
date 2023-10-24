@@ -3,8 +3,6 @@ use bytes::Bytes;
 use futures::Stream;
 
 pub trait Store {
-    type Stream: Stream<Item = Result<Bytes, Error>>;
-
-    async fn put(&self, stream: Self::Stream, size_limit: Option<i64>) -> Result<String, Error>;
-    async fn get(&self, filepath: &str) -> Result<Self::Stream, Error>;
+    async fn put(&self, stream: impl Stream<Item = Result<Bytes, Error>>, size_limit: Option<i64>) -> Result<String, Error>;
+    async fn get(&self, filepath: &str) -> Result<Box<dyn Stream<Item = Result<Bytes, Error>>>, Error>;
 }
