@@ -4,7 +4,7 @@ use anyhow::Error;
 use bytes::Bytes;
 use futures::Stream;
 use mime_guess::{self, mime};
-use std::marker::PhantomData;
+use std::{marker::PhantomData, pin::Pin};
 
 #[derive(Debug, Clone)]
 pub struct Service<R, S, ID>
@@ -51,7 +51,7 @@ where
         self.repository.get_uploaded_file(id).await
     }
 
-    pub async fn download(&self, id: ID) -> Result<Box<dyn Stream<Item = Result<Bytes, Error>>>, Error> {
+    pub async fn download(&self, id: ID) -> Result<Pin<Box<dyn Stream<Item = Result<Bytes, Error>>>>, Error> {
         let file = self.repository.get_uploaded_file(id).await?;
         self.store.get(&file.filepath).await
     }

@@ -2,6 +2,7 @@ use crate::core::store::Store;
 use anyhow::Error;
 use bytes::Bytes;
 use futures::{Stream, StreamExt, TryStreamExt};
+use std::pin::Pin;
 use tokio::{fs::File, io::AsyncWriteExt};
 use tokio_util::codec::{BytesCodec, FramedRead};
 use uuid::Uuid;
@@ -44,12 +45,12 @@ impl Store for LocalFSStore {
         Ok(filepath)
     }
 
-    async fn get(&self, filepath: &str) -> Result<Box<dyn Stream<Item = Result<Bytes, Error>>>, Error> {
+    async fn get(&self, filepath: &str) -> Result<Pin<Box<dyn Stream<Item = Result<Bytes, Error>>>>, Error> {
         let file = File::open(filepath).await?;
         let stream = FramedRead::new(file, BytesCodec::new()).map(|v| match v {
             Ok(b) => Ok(b.freeze()),
             Err(e) => Err(Error::new(e)),
         });
-        Ok(Box::new(stream) as Box<dyn Stream<Item = Result<Bytes, Error>>>)
+        Ok(Box::pin(stream))
     }
 }
