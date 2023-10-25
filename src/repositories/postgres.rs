@@ -20,17 +20,23 @@ impl Postgres {
 }
 
 impl Repository for Postgres {
-    async fn get_uploaded_file(&self, id: &str) -> Result<UploadedFile, Error> {
-        let (id, filename, mime_type, filepath, uploader_id, uploaded_at): (String, String, String, String, String, DateTime<Utc>) =
-            query_as("SELECT * FROM uploaded_files WHERE id = $1").bind(id).fetch_one(&self.pool).await?;
-        Ok(UploadedFile {
-            id,
-            filename,
-            mime_type,
-            filepath,
-            uploader_id,
-            uploaded_at,
-        })
+    async fn get_uploaded_file(&self, id: &str) -> Result<Option<UploadedFile>, Error> {
+        if let Some((id, filename, mime_type, filepath, uploader_id, uploaded_at)) =
+            query_as("SELECT * FROM uploaded_files WHERE id = $1")
+                .bind(id)
+                .fetch_optional(&self.pool)
+                .await?
+        {
+            return Ok(Some(UploadedFile {
+                id,
+                filename,
+                mime_type,
+                filepath,
+                uploader_id,
+                uploaded_at,
+            }));
+        }
+        Ok(None)
     }
 
     async fn insert_uploaded_file(&self, file: UploadedFileCreate) -> Result<String, Error> {

@@ -22,8 +22,9 @@ impl Mongo {
 }
 
 impl Repository for Mongo {
-    async fn get_uploaded_file(&self, id: &str) -> Result<UploadedFile, Error> {
-        self.db
+    async fn get_uploaded_file(&self, id: &str) -> Result<Option<UploadedFile>, Error> {
+        Ok(self
+            .db
             .collection("uploaded_files")
             .find_one(
                 doc! { "_id": ObjectId::parse_str(id)? },
@@ -38,8 +39,7 @@ impl Repository for Mongo {
                     })
                     .build(),
             )
-            .await?
-            .ok_or(Error::msg("file not exists"))
+            .await?)
     }
 
     async fn insert_uploaded_file(&self, file: UploadedFileCreate) -> Result<String, Error> {

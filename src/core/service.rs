@@ -26,7 +26,13 @@ where
         Self { repository, store }
     }
 
-    pub async fn upload(&self, stream: impl Stream<Item = Result<Bytes, Error>>, filename: &str, uploader_id: &str, size_limit: Option<i64>) -> Result<String, Error> {
+    pub async fn upload(
+        &self,
+        stream: impl Stream<Item = Result<Bytes, Error>>,
+        filename: &str,
+        uploader_id: &str,
+        size_limit: Option<i64>,
+    ) -> Result<String, Error> {
         let mime_type = match mime_guess::from_path(filename).first() {
             Some(mime_type) => mime_type,
             None => mime::APPLICATION_OCTET_STREAM,
@@ -43,17 +49,21 @@ where
             .await
     }
 
-    pub async fn get_uploaded_file(&self, id: &str) -> Result<UploadedFile, Error> {
+    pub async fn get_uploaded_file(&self, id: &str) -> Result<Option<UploadedFile>, Error> {
         self.repository.get_uploaded_file(id).await
     }
 
     pub async fn download(&self, id: &str) -> Result<Pin<Box<dyn Stream<Item = Result<Bytes, Error>>>>, Error> {
-        let file = self.repository.get_uploaded_file(id).await?;
-        self.store.get(&file.filepath).await
+        if let Some(file) = self.repository.get_uploaded_file(id).await? {
+            return self.store.get(&file.filepath).await;
+        }
+        Err(Error::msg("File not found"))
     }
 
     pub async fn is_owner(&self, id: &str, uploader_id: &str) -> Result<bool, Error> {
-        let file = self.repository.get_uploaded_file(id).await?;
-        Ok(file.uploader_id == uploader_id)
+        if let Some(file) = self.repository.get_uploaded_file(id).await? {
+            return Ok(file.uploader_id == uploader_id);
+        }
+        Err(Error::msg("File not found"))
     }
 }
