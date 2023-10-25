@@ -1,23 +1,21 @@
-use chrono::{DateTime, Local};
+use chrono::{DateTime, Utc};
+use serde::{Deserialize, Serialize};
 
-pub struct UploadedFile<I> {
-    pub id: I,
+#[derive(Debug, Deserialize)]
+pub struct UploadedFile {
+    pub id: String,
     pub filename: String,
     pub mime_type: String,
     pub filepath: String,
-    pub uploader_id: I,
-    pub uploaded_at: DateTime<Local>,
+    pub uploader_id: String,
+    pub uploaded_at: DateTime<Utc>,
 }
 
-pub struct UploadedFileCreate<I> {
+#[derive(Debug, Serialize)]
+pub struct UploadedFileCreate {
     pub filename: String,
     pub mime_type: String,
     pub filepath: String,
-    pub uploader_id: I,
-}
-
-#[derive(Debug, Clone)]
-pub struct UploadedFileQuery<I> {
-    pub id_eq: Option<I>,
-    pub uploader_id_eq: Option<I>,
+    pub uploader_id: String,
+    pub uploaded_at: DateTime<Utc>,
 }

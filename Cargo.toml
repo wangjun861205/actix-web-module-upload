@@ -12,7 +12,7 @@ sqlx = { version = "0.7.1", features = ["postgres", "runtime-tokio", "chrono"] }
 actix-web = { version = "4.4.0" }
 anyhow = "1.0.75"
 bytes = "1.4.0"
-chrono = "0.4.28"
+chrono = { version = "0.4.28", features = ["serde"] }
 futures = "0.3.28"
 serde = { version = "1.0.188", features = ["derive"] }
 tokio-util = "0.7.8"
@@ -20,3 +20,4 @@ uuid = { version = "1.4.1", features = ["v4"] }
 dotenv = "0.15.0"
 mime_guess = "2.0.4"
 env_logger = "0.10.0"
+mongodb = "2.7.0"
