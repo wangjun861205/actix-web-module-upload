@@ -5,6 +5,7 @@ use bytes::Bytes;
 use chrono::Utc;
 use futures::Stream;
 use mime_guess::{self, mime};
+use serde::Serialize;
 use std::pin::Pin;
 
 #[derive(Debug, Clone)]
@@ -15,6 +16,12 @@ where
 {
     repository: R,
     store: S,
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct UploadResp {
+    id: String,
+    mime_type: String,
 }
 
 impl<R, S> Service<R, S>
@@ -32,13 +39,14 @@ where
         filename: &str,
         uploader_id: &str,
         size_limit: Option<i64>,
-    ) -> Result<String, Error> {
+    ) -> Result<UploadResp, Error> {
         let mime_type = match mime_guess::from_path(filename).first() {
             Some(mime_type) => mime_type,
             None => mime::APPLICATION_OCTET_STREAM,
         };
         let filepath = self.store.put(stream, size_limit).await?;
-        self.repository
+        let id = self
+            .repository
             .insert_uploaded_file(UploadedFileCreate {
                 filename: filename.into(),
                 mime_type: mime_type.to_string(),
@@ -46,7 +54,11 @@ where
                 uploader_id: uploader_id.into(),
                 uploaded_at: Utc::now(),
             })
-            .await
+            .await?;
+        Ok(UploadResp {
+            id,
+            mime_type: mime_type.to_string(),
+        })
     }
 
     pub async fn get_uploaded_file(&self, id: &str) -> Result<Option<UploadedFile>, Error> {
