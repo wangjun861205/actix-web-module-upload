@@ -2,6 +2,7 @@ use crate::core::store::Store;
 use anyhow::Error;
 use bytes::Bytes;
 use futures::{Stream, StreamExt, TryStreamExt};
+use std::path::Path;
 use std::pin::Pin;
 use tokio::{fs::File, io::AsyncWriteExt};
 use tokio_util::codec::{BytesCodec, FramedRead};
@@ -22,11 +23,14 @@ impl LocalFSStore {
 }
 
 impl Store for LocalFSStore {
-    async fn put(&self, stream: impl Stream<Item = Result<Bytes, Error>>, size_limit: Option<i64>) -> Result<String, Error> {
+    async fn put(
+        &self,
+        stream: impl Stream<Item = Result<Bytes, Error>>,
+        size_limit: Option<i64>,
+    ) -> Result<String, Error> {
         let stream = Box::pin(stream);
-        let token = Uuid::new_v4().to_string();
-        let filepath = format!("{}/{}", self.path, token);
-        let mut file = File::create(&filepath).await?;
+        let filename = Uuid::new_v4().to_string();
+        let mut file = File::create(Path::new(&self.path).join(&filename)).await?;
         let mut curr_size = 0;
         let mut stream = stream.map(|bs| {
             if let Ok(bs) = &bs {
@@ -42,11 +46,11 @@ impl Store for LocalFSStore {
         while let Some(bs) = stream.try_next().await? {
             file.write_all(&bs).await?;
         }
-        Ok(filepath)
+        Ok(filename)
     }
 
-    async fn get(&self, filepath: &str) -> Result<Pin<Box<dyn Stream<Item = Result<Bytes, Error>>>>, Error> {
-        let file = File::open(filepath).await?;
+    async fn get(&self, filename: &str) -> Result<Pin<Box<dyn Stream<Item = Result<Bytes, Error>>>>, Error> {
+        let file = File::open(Path::new(&self.path).join(filename)).await?;
         let stream = FramedRead::new(file, BytesCodec::new()).map(|v| match v {
             Ok(b) => Ok(b.freeze()),
             Err(e) => Err(Error::new(e)),

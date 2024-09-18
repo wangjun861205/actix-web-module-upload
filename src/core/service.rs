@@ -44,13 +44,13 @@ where
             Some(mime_type) => mime_type,
             None => mime::APPLICATION_OCTET_STREAM,
         };
-        let filepath = self.store.put(stream, size_limit).await?;
+        let stored_name = self.store.put(stream, size_limit).await?;
         let id = self
             .repository
             .insert_uploaded_file(UploadedFileCreate {
-                filename: filename.into(),
+                origin_name: filename.into(),
                 mime_type: mime_type.to_string(),
-                filepath,
+                stored_name,
                 uploader_id: uploader_id.into(),
                 uploaded_at: Utc::now(),
             })
@@ -67,7 +67,7 @@ where
 
     pub async fn download(&self, id: &str) -> Result<Pin<Box<dyn Stream<Item = Result<Bytes, Error>>>>, Error> {
         if let Some(file) = self.repository.get_uploaded_file(id).await? {
-            return self.store.get(&file.filepath).await;
+            return self.store.get(&file.stored_name).await;
         }
         Err(Error::msg("File not found"))
     }

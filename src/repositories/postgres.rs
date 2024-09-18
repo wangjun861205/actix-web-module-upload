@@ -1,5 +1,4 @@
 use anyhow::Error;
-use chrono::{DateTime, Utc};
 use sqlx::postgres::PgPool;
 use sqlx::{query_as, query_scalar};
 
@@ -21,7 +20,7 @@ impl Postgres {
 
 impl Repository for Postgres {
     async fn get_uploaded_file(&self, id: &str) -> Result<Option<UploadedFile>, Error> {
-        if let Some((id, filename, mime_type, filepath, uploader_id, uploaded_at)) =
+        if let Some((id, origin_name, mime_type, stored_name, uploader_id, uploaded_at)) =
             query_as("SELECT * FROM uploaded_files WHERE id = $1")
                 .bind(id)
                 .fetch_optional(&self.pool)
@@ -29,9 +28,9 @@ impl Repository for Postgres {
         {
             return Ok(Some(UploadedFile {
                 id,
-                filename,
+                origin_name,
                 mime_type,
-                filepath,
+                stored_name,
                 uploader_id,
                 uploaded_at,
             }));
@@ -40,10 +39,10 @@ impl Repository for Postgres {
     }
 
     async fn insert_uploaded_file(&self, file: UploadedFileCreate) -> Result<String, Error> {
-        let id = query_scalar("INSERT INTO uploaded_files (filename, mime_type, fetch_token, uploader_id) VALUES ($1, $2, $3, $4) RETURNING id")
-            .bind(file.filename)
+        let id = query_scalar("INSERT INTO uploaded_files (origin_name, mime_type, stored_name, uploader_id) VALUES ($1, $2, $3, $4) RETURNING id")
+            .bind(file.origin_name)
             .bind(file.mime_type)
-            .bind(file.filepath)
+            .bind(file.stored_name)
             .bind(file.uploader_id)
             .fetch_one(&self.pool)
             .await?;
