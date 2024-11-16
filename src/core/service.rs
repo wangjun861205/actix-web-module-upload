@@ -8,11 +8,11 @@ use mime_guess::{self, mime};
 use serde::Serialize;
 use std::pin::Pin;
 
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct Service<R, S>
 where
-    R: Repository + Clone,
-    S: Store + Clone,
+    R: Repository,
+    S: Store,
 {
     repository: R,
     store: S,
@@ -26,8 +26,8 @@ pub struct UploadResp {
 
 impl<R, S> Service<R, S>
 where
-    R: Repository + Clone,
-    S: Store + Clone,
+    R: Repository,
+    S: Store,
 {
     pub fn new(repository: R, store: S) -> Self {
         Self { repository, store }
